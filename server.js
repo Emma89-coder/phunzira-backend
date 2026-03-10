@@ -13,9 +13,15 @@ const Helpers = require('./utils/helpers');
 
 const app = express();
 
+// ==================== TRUST PROXY SETTING (FIX FOR RATE LIMITING) ====================
+// This tells Express to trust the X-Forwarded-* headers from Render's proxy
+// Required for accurate IP detection when behind a reverse proxy (like Render)
+app.set('trust proxy', 1); // Trust the first proxy (Render)
+
 // ==================== VALIDATE CONFIG ====================
 try {
     config.validateConfig();
+    console.log('✅ Configuration validated successfully');
 } catch (err) {
     console.error('❌ Configuration error:', err.message);
     process.exit(1);
@@ -40,13 +46,19 @@ app.use(cors({
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-// Rate limiting
+// Rate limiting - now with proper trust proxy setting
 const limiter = rateLimit({
     windowMs: config.RATE_LIMIT_WINDOW * 60 * 1000,
     max: config.RATE_LIMIT_MAX,
     message: Helpers.formatResponse(false, 'Too many requests, please try again later'),
     standardHeaders: true,
     legacyHeaders: false,
+    // Optional: Add a custom key generator that handles X-Forwarded-For properly
+    // keyGenerator: (req) => {
+    //     const forwarded = req.headers['x-forwarded-for'];
+    //     const ip = forwarded ? (typeof forwarded === 'string' ? forwarded.split(',')[0] : forwarded[0]) : req.ip;
+    //     return ip.replace(/:\d+[^:]*$/, '');
+    // }
 });
 app.use('/api', limiter);
 
@@ -54,9 +66,10 @@ app.use('/api', limiter);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Request logging
+// Request logging - now includes real client IP
 app.use((req, res, next) => {
-    console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+    const clientIp = req.headers['x-forwarded-for'] || req.ip || req.socket.remoteAddress;
+    console.log(`${new Date().toISOString()} - ${req.method} ${req.path} - IP: ${clientIp}`);
     next();
 });
 
@@ -129,6 +142,7 @@ const server = app.listen(config.PORT, '0.0.0.0', () => {
     console.log(`🚀 Server running on port ${config.PORT}`);
     console.log(`📝 Environment: ${config.NODE_ENV}`);
     console.log(`🔗 Health check: http://localhost:${config.PORT}/health`);
+    console.log(`🔒 Trust proxy enabled: true`);
     console.log(`📋 Auth endpoints:`);
     console.log(`   - POST   /api/auth/register`);
     console.log(`   - POST   /api/auth/login`);
