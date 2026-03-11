@@ -19,8 +19,6 @@ module.exports = {
     // JWT config
     JWT_SECRET: process.env.JWT_SECRET,
     JWT_EXPIRE: process.env.JWT_EXPIRE || '7d',
-    JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET,
-    JWT_REFRESH_EXPIRE: process.env.JWT_REFRESH_EXPIRE || '30d',
 
     // Additional JWT tokens for specific purposes
     JWT_ACCESS_SECRET: process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET,
@@ -47,11 +45,11 @@ module.exports = {
         : [
             'http://localhost:3000',
             'http://localhost:5000',
-            'https://phunziraa.netlify.app'
+            'https://phunzira.netlify.app'
           ],
 
     // Frontend URL for email links
-    FRONTEND_URL: process.env.FRONTEND_URL || 'https://phunziraa.netlify.app',
+    FRONTEND_URL: process.env.FRONTEND_URL || 'https://phunzira.netlify.app',
 
     // Validate required config
     validateConfig() {
